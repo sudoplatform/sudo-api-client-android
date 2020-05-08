@@ -1,0 +1,2 @@
+include ':sudoapiclient'
+rootProject.name='SudoAPIClientAndroid'
