@@ -82,7 +82,6 @@ object ApiClientManager {
                 // supported.
                 // .cognitoUserPoolsAuthProvider(authProvider)
                 .oidcAuthProvider { authProvider.latestAuthToken }
-                .mutationQueueExecutionTimeout(30)
                 .subscriptionsAutoReconnect(true)
                 .awsConfiguration(AWSConfiguration(awsConfig))
                 .build()
