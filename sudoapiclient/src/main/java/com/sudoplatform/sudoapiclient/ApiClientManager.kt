@@ -33,9 +33,7 @@ object ApiClientManager {
     @Throws
     fun getClient(context: Context, sudoUserClient: SudoUserClient): AWSAppSyncClient {
         // return the existing AWSAppSyncClient if it has already been created
-        this.client?.let {
-            return it
-        }
+        this.client?.let { return it }
         val sudoConfigManager = DefaultSudoConfigManager(context, logger)
         val apiConfig = sudoConfigManager.getConfigSet("apiService")
         val identityServiceConfig = sudoConfigManager.getConfigSet("identityService")
