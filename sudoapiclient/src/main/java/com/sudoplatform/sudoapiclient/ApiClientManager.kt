@@ -3,10 +3,13 @@ package com.sudoplatform.sudoapiclient
 import android.content.Context
 import com.amazonaws.mobile.config.AWSConfiguration
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
+import com.babylon.certificatetransparency.certificateTransparencyInterceptor
 import com.sudoplatform.sudoconfigmanager.DefaultSudoConfigManager
 import com.sudoplatform.sudologging.Logger
+import com.sudoplatform.sudouser.ConvertSslErrorsInterceptor
 import com.sudoplatform.sudouser.GraphQLAuthProvider
 import com.sudoplatform.sudouser.SudoUserClient
+import okhttp3.OkHttpClient
 import org.json.JSONObject
 
 /**
@@ -83,6 +86,7 @@ object ApiClientManager {
                 .oidcAuthProvider { authProvider.latestAuthToken }
                 .subscriptionsAutoReconnect(true)
                 .awsConfiguration(AWSConfiguration(awsConfig))
+                .okHttpClient(buildOkHttpClient())
                 .build()
 
             this.client = appSyncClient
@@ -90,6 +94,27 @@ object ApiClientManager {
         } catch (e: Exception) {
             throw(e)
         }
+    }
+
+    /**
+     * Construct the [OkHttpClient] configured with the certificate transparency checking interceptor.
+     */
+    private fun buildOkHttpClient(): OkHttpClient {
+        val interceptor = certificateTransparencyInterceptor {
+            // Enable for AWS hosts. The doco says I can use *.* for all hosts
+            // but that enhancement hasn't been released yet (v0.2.0)
+            +"*.amazonaws.com"
+            +"*.amazon.com"
+        }
+        val okHttpClient = OkHttpClient.Builder().apply {
+            // Convert exceptions from certificate transparency into http errors that stop the
+            // expoential backoff retrying of [AWSAppSyncClient]
+            addInterceptor(ConvertSslErrorsInterceptor())
+
+            // Certificate transparency checking
+            addNetworkInterceptor(interceptor)
+        }
+        return okHttpClient.build()
     }
 
     /**
