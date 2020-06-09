@@ -43,8 +43,7 @@ object ApiClientManager {
 
         require(identityServiceConfig != null && apiConfig != null) { "Identity or API service configuration is missing." }
 
-        val api = apiConfig?.get("apiUrl")
-        val apiUrl = api as String?
+        val apiUrl = apiConfig?.get("apiUrl") as String?
         val region = apiConfig?.get("region") as String?
         val poolId = identityServiceConfig?.get("poolId") as String?
         val clientId = identityServiceConfig?.get("clientId") as String?
