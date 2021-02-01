@@ -43,10 +43,10 @@ object ApiClientManager {
 
         require(identityServiceConfig != null && apiConfig != null) { "Identity or API service configuration is missing." }
 
-        val apiUrl = apiConfig?.get("apiUrl") as String?
-        val region = apiConfig?.get("region") as String?
-        val poolId = identityServiceConfig?.get("poolId") as String?
-        val clientId = identityServiceConfig?.get("clientId") as String?
+        val apiUrl = apiConfig.get("apiUrl") as String?
+        val region = apiConfig.get("region") as String?
+        val poolId = identityServiceConfig.get("poolId") as String?
+        val clientId = identityServiceConfig.get("clientId") as String?
 
         require(poolId != null
                 && clientId != null
@@ -107,7 +107,7 @@ object ApiClientManager {
         }
         val okHttpClient = OkHttpClient.Builder().apply {
             // Convert exceptions from certificate transparency into http errors that stop the
-            // expoential backoff retrying of [AWSAppSyncClient]
+            // exponential backoff retrying of [AWSAppSyncClient]
             addInterceptor(ConvertSslErrorsInterceptor())
 
             // Certificate transparency checking
