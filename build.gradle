@@ -3,7 +3,7 @@
 buildscript {
     ext.kotlin_version = '1.4.21'
     ext.dokka_version = '0.9.18'
-    ext.appsync_version = "3.1.0"
+    ext.appsync_version = "3.1.1"
     ext.aws_version = "2.16.12"
 
     repositories {
@@ -27,13 +27,43 @@ buildscript {
 
 apply plugin: 'io.codearte.nexus-staging'
 
+
+if(project.file("${rootProject.projectDir}/util/internal-repo.gradle").exists()) {
+    apply from: "${rootProject.projectDir}/util/internal-repo.gradle"
+}
+else {
+    ext["internalRepoUsername"] = ""
+    ext["internalRepoPassword"] = ""
+    ext["internalSnapshotRepoUrl"] = ""
+    ext["internalSnapshotRepoName"] = ""
+    ext["internalReleaseRepoUrl"] = ""
+    ext["internalReleaseRepoName"] = ""
+}
+
 allprojects {
     repositories {
+        mavenLocal()
         google()
         mavenCentral()
-        // the following line is required to get the dependency
-        // org.jetbrains.trove4j:trove4j:20160824.
-        maven { url 'https://plugins.gradle.org/m2/' }
+        jcenter() // Needed for Dokka dependencies
+        if (internalRepoUsername?.trim()) {
+            maven {
+                name = internalSnapshotRepoName
+                url = internalSnapshotRepoUrl
+                credentials {
+                    username = internalRepoUsername
+                    password = internalRepoPassword
+                }
+            }
+            maven {
+                name = internalReleaseRepoName
+                url = internalReleaseRepoUrl
+                credentials {
+                    username = internalRepoUsername
+                    password = internalRepoPassword
+                }
+            }
+        }
     }
 }
 
