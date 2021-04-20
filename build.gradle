@@ -1,14 +1,13 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
 buildscript {
-    ext.kotlin_version = '1.4.21'
-    ext.dokka_version = '0.9.18'
+    ext.kotlin_version = '1.4.30'
     ext.appsync_version = "3.1.1"
     ext.aws_version = "2.16.12"
 
     repositories {
-        google()
         maven { url "https://plugins.gradle.org/m2/" }
+        google()
         mavenCentral()
     }
 
@@ -18,15 +17,23 @@ buildscript {
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
 
-        classpath "com.amazonaws:aws-android-sdk-appsync-gradle-plugin:$appsync_version"
-        classpath "org.jetbrains.dokka:dokka-gradle-plugin:${dokka_version}"
+        classpath "org.owasp:dependency-check-gradle:6.0.1"
         classpath "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:2.8"
-        classpath "io.codearte.gradle.nexus:gradle-nexus-staging-plugin:0.21.2"
+        classpath "io.codearte.gradle.nexus:gradle-nexus-staging-plugin:0.22.0"
+        classpath "com.cookpad.android.licensetools:license-tools-plugin:1.7.0"
     }
 }
 
-apply plugin: 'io.codearte.nexus-staging'
+ext {
+    projectGroup = 'com.sudoplatform'
+}
 
+apply plugin: 'io.codearte.nexus-staging'
+nexusStaging {
+    packageGroup = projectGroup
+    stagingProfileId = '14314878e2a1b'
+    numberOfRetries = 50
+}
 
 if(project.file("${rootProject.projectDir}/util/internal-repo.gradle").exists()) {
     apply from: "${rootProject.projectDir}/util/internal-repo.gradle"
@@ -45,7 +52,6 @@ allprojects {
         mavenLocal()
         google()
         mavenCentral()
-        jcenter() // Needed for Dokka dependencies
         if (internalRepoUsername?.trim()) {
             maven {
                 name = internalSnapshotRepoName

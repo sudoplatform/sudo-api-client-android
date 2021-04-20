@@ -1,20 +1,32 @@
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
-apply plugin: 'org.jetbrains.dokka'
 apply plugin: "org.sonarqube"
+apply plugin: "org.owasp.dependencycheck"
 
 android {
-    compileSdkVersion 28
+    compileSdkVersion 30
 
     defaultConfig {
         minSdkVersion 23
-        targetSdkVersion 28
+        targetSdkVersion 30
         versionCode 1
         versionName "2.0.2"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-        consumerProguardFiles 'consumer-rules.pro'
+        testInstrumentationRunnerArguments clearPackageData: "true"
+    }
+
+    testOptions {
+        animationsDisabled = true
+
+        unitTests.all {
+            testLogging {
+                events "passed", "skipped", "failed", "standardOut", "standardError"
+                outputs.upToDateWhen { false }
+                showStandardStreams = true
+            }
+       }
     }
 
     buildTypes {
@@ -23,15 +35,13 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+
     compileOptions {
         sourceCompatibility 1.8
         targetCompatibility 1.8
     }
     kotlinOptions {
         jvmTarget = "1.8"
-    }
-    testOptions {
-        unitTests.returnDefaultValues = true
     }
 
     sourceSets {
@@ -70,15 +80,74 @@ artifacts {
     archives sourcesJar
 }
 
-dokka {
-    outputFormat = 'html'
-    outputDirectory = "$buildDir/javadoc"
+// Returns a list of `configurations` which should not be scanned for vulnerabilities
+def getConfigurationsToSkip = { configs ->
+    configs.findAll {
+        it.name.startsWithAny("androidTest", "test", "lint") ||
+                it.name.contains("AndroidTest") ||
+                it.name.contains("UnitTest")
+    }.collect {
+        it.name
+    }
 }
+
+tasks.register("printConfigurationsToSkip") {
+    group = "OWASP dependency-check"
+    description = "Print the configurations which are skipped when scanning for vulnerable dependencies"
+    doLast {
+        println "Configurations to skip when scanning for vulnerable dependencies:"
+        println getConfigurationsToSkip(configurations).join("\n")
+    }
+}
+
+afterEvaluate {
+    // NOTE: this must be within `afterEvaluate` to ensure all the configurations have been created before filtering them
+    dependencyCheck {
+        suppressionFile file("../dependency-suppression.xml").toString()
+        failBuildOnCVSS 0
+        skipConfigurations = getConfigurationsToSkip(configurations)
+    }
+}
+
+// https://github.com/cookpad/license-tools-plugin
+apply plugin: "com.cookpad.android.licensetools"
+licenseTools {
+    licensesYaml = file("licenses.yml")
+    ignoredGroups = ["com.nhaarman:mockito-kotlin", "com.anonyome", "com.sudoplatform"]
+    ignoredProjects = ["org.mockito"]
+}
+
+@Grab('org.yaml:snakeyaml:1.17') // Yaml parser
+import org.yaml.snakeyaml.Yaml
+
+task checkLicenseHaveRequiredFields {
+    description = "Check every license entry has the mandatory fields"
+    group = "verification"
+    doLast {
+        def mandatoryFields = ["artifact", "name", "copyrightHolder", "url"]
+        Yaml parser = new Yaml()
+        def licenses = parser.load((file("licenses.yml") as File).text)
+        def errors = new StringBuilder()
+        licenses.each { artifact ->
+            mandatoryFields.each { field ->
+                if (artifact[field] == null) {
+                    errors.append("License entry '${artifact.artifact}' is missing required element `$field`\n")
+                }
+            }
+            if (artifact["license"] == null && artifact["licenseUrl" == null]) {
+                errors.append("License entry '${artifact.artifact}' must have one of [license,licenseUrl]\n")
+            }
+        }
+        if (errors.length() > 0) {
+            throw new GradleException("Missing license elements:\n$errors")
+        }
+    }
+}
+checkLicenses.finalizedBy checkLicenseHaveRequiredFields
 
 apply plugin: 'maven'
 
 ext {
-    projectGroup = 'com.sudoplatform'
     projectArtifact = 'sudoapiclient'
     projectDescription = 'An Android library used by SudoPlatform SDKs for sharing a single AWS AppSync Client'
     projectUrl = 'https://github.com/sudoplatform/sudo-api-client-android'
