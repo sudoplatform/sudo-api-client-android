@@ -1,7 +1,7 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
 buildscript {
-    ext.kotlin_version = '1.4.30'
+    ext.kotlin_version = '1.4.32'
     ext.appsync_version = "3.1.1"
     ext.aws_version = "2.16.12"
 
@@ -12,27 +12,23 @@ buildscript {
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:4.1.2'
+        classpath 'com.android.tools.build:gradle:4.2.1'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
 
-        classpath "org.owasp:dependency-check-gradle:6.0.1"
-        classpath "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:2.8"
-        classpath "io.codearte.gradle.nexus:gradle-nexus-staging-plugin:0.22.0"
+        classpath "org.owasp:dependency-check-gradle:6.1.1"
+        classpath "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:3.1.1"
         classpath "com.cookpad.android.licensetools:license-tools-plugin:1.7.0"
     }
 }
 
-ext {
-    projectGroup = 'com.sudoplatform'
+plugins {
+    id "io.github.gradle-nexus.publish-plugin" version "1.1.0"
 }
 
-apply plugin: 'io.codearte.nexus-staging'
-nexusStaging {
-    packageGroup = projectGroup
-    stagingProfileId = '14314878e2a1b'
-    numberOfRetries = 50
+ext {
+    projectGroup = 'com.sudoplatform'
 }
 
 if(project.file("${rootProject.projectDir}/util/internal-repo.gradle").exists()) {
@@ -45,6 +41,20 @@ else {
     ext["internalSnapshotRepoName"] = ""
     ext["internalReleaseRepoUrl"] = ""
     ext["internalReleaseRepoName"] = ""
+    ext["sonatypeStagingProfileId"] = ""
+}
+
+if (project.findProperty("tag") && sonatypeStagingProfileId) {
+    nexusPublishing {
+        repositories {
+            sonatype {
+                stagingProfileId = sonatypeStagingProfileId
+
+                username = nexusUsername
+                password = nexusPassword
+            }
+        }
+    }
 }
 
 allprojects {
