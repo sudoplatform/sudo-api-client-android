@@ -20,6 +20,14 @@ object ApiClientManager {
     private var client: AWSAppSyncClient? = null
 
     /**
+     * Checksum's for each file are generated and are used to create a checksum that is used when publishing to maven central.
+     * In order to retry a failed publish without needing to change any functionality, we need a way to generate a different checksum
+     * for the source code.  We can change the value of this property which will generate a different checksum for publishing
+     * and allow us to retry.  The value of `version` doesn't need to be kept up-to-date with the version of the code.
+     */
+    private val version: String = "2.1.2"
+
+    /**
      * Sets the SudoLogging `Logger` for the shared instance
      * @param logger Logger for logging all messages within manager
      */
