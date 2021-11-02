@@ -495,3 +495,15 @@
   license: Bouncy Castle Licence
   licenseUrl: http://www.bouncycastle.org/licence.html
   url: http://www.bouncycastle.org/java.html
+- artifact: org.jetbrains.kotlinx:kotlinx-serialization-core-jvm:+
+  name: kotlinx-serialization-core
+  copyrightHolder: JetBrains, Inc.
+  license: The Apache Software License, Version 2.0
+  licenseUrl: https://www.apache.org/licenses/LICENSE-2.0.txt
+  url: https://github.com/Kotlin/kotlinx.serialization
+- artifact: org.jetbrains.kotlinx:kotlinx-serialization-json-jvm:+
+  name: kotlinx-serialization-json
+  copyrightHolder: JetBrains, Inc.
+  license: The Apache Software License, Version 2.0
+  licenseUrl: https://www.apache.org/licenses/LICENSE-2.0.txt
+  url: https://github.com/Kotlin/kotlinx.serialization
