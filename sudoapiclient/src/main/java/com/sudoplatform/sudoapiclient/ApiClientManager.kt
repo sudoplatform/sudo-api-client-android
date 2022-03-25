@@ -11,6 +11,7 @@ import com.sudoplatform.sudouser.GraphQLAuthProvider
 import com.sudoplatform.sudouser.SudoUserClient
 import okhttp3.OkHttpClient
 import org.json.JSONObject
+import java.util.concurrent.TimeUnit
 
 /**
  * Manages a singleton GraphQL client instance that may be shared by multiple service clients.
@@ -108,7 +109,7 @@ object ApiClientManager {
      */
     private fun buildOkHttpClient(): OkHttpClient {
         val interceptor = certificateTransparencyInterceptor {}
-        val okHttpClient = OkHttpClient.Builder().apply {
+        val okHttpClient = OkHttpClient.Builder().readTimeout(30L, TimeUnit.SECONDS).apply {
             // Convert exceptions from certificate transparency into http errors that stop the
             // exponential backoff retrying of [AWSAppSyncClient]
             addInterceptor(ConvertSslErrorsInterceptor())

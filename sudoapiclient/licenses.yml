@@ -507,3 +507,44 @@
   license: The Apache Software License, Version 2.0
   licenseUrl: https://www.apache.org/licenses/LICENSE-2.0.txt
   url: https://github.com/Kotlin/kotlinx.serialization
+- artifact: androidx.test.ext:junit-ktx:+
+  name: AndroidX Test Library
+  copyrightHolder: Google, Inc.
+  license: The Apache Software License, Version 2.0
+  licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
+  url: https://developer.android.com/testing
+- artifact: androidx.test:monitor:+
+  name: AndroidX Test Library
+  copyrightHolder: Google, Inc.
+  license: The Apache Software License, Version 2.0
+  licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
+  url: https://developer.android.com/testing
+- artifact: androidx.test.ext:junit:+
+  name: AndroidX Test Library
+  copyrightHolder: Google, Inc.
+  license: The Apache Software License, Version 2.0
+  licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
+  url: https://developer.android.com/testing
+- artifact: androidx.test:core:+
+  name: AndroidX Test Library
+  copyrightHolder: Google, Inc.
+  license: The Apache Software License, Version 2.0
+  licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
+  url: https://developer.android.com/testing
+- artifact: androidx.concurrent:concurrent-futures:+
+  name: AndroidX Futures
+  copyrightHolder: Google, Inc.
+  license: The Apache Software License, Version 2.0
+  licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
+  url: https://developer.android.com/topic/libraries/architecture/index.html
+- artifact: com.google.guava:listenablefuture:+
+  name: Guava ListenableFuture only
+  copyrightHolder: Google, Inc.
+  license: The Apache Software License, Version 2.0
+  url: https://https://github.com/google/guava
+- artifact: com.amazonaws:aws-android-sdk-cognitoauth:2.42.0
+  name: AWS SDK for Android - Amazon Cognito Auth
+  copyrightHolder: Amazon
+  license: Amazon Software License
+  licenseUrl: https://aws.amazon.com/asl/
+  url: https://github.com/aws/aws-sdk-android
