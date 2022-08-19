@@ -11,7 +11,7 @@ android {
         minSdkVersion 23
         targetSdkVersion 30
         versionCode 1
-        versionName "2.0.4"
+        versionName "3.1.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         testInstrumentationRunnerArguments clearPackageData: "true"
@@ -59,6 +59,11 @@ dependencies {
     // for updating AWS SDK versions.
     implementation "com.amazonaws:aws-android-sdk-core:$aws_version!!"
     implementation "com.amazonaws:aws-android-sdk-appsync:$appsync_version!!"
+    constraints {
+        implementation("com.squareup.okhttp3:okhttp:4.9.3") {
+            because("Versions < 4.9.3 has CVE-2021-0341")
+        }
+    }
 
     implementation 'com.appmattus.certificatetransparency:certificatetransparency-android:1.1.0'
     implementation 'org.bouncycastle:bcprov-jdk15to18:1.70'
@@ -69,8 +74,8 @@ dependencies {
     androidTestImplementation "io.kotlintest:kotlintest-assertions:3.4.2"
 
     // Sudo Platform SDKs.
-    implementation 'com.sudoplatform:sudoconfigmanager:2.0.0'
-    implementation 'com.sudoplatform:sudouser:11.0.0'
+    implementation 'com.sudoplatform:sudoconfigmanager:2.1.0'
+    implementation 'com.sudoplatform:sudouser:11.2.0'
 }
 
 configurations.all {

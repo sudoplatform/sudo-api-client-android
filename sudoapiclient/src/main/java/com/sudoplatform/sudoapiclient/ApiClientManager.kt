@@ -1,3 +1,9 @@
+/*
+ * Copyright © 2022 Anonyome Labs, Inc. All rights reserved.
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 package com.sudoplatform.sudoapiclient
 
 import android.content.Context
@@ -26,7 +32,7 @@ object ApiClientManager {
      * for the source code.  We can change the value of this property which will generate a different checksum for publishing
      * and allow us to retry.  The value of `version` doesn't need to be kept up-to-date with the version of the code.
      */
-    private val version: String = "2.1.2"
+    private val version: String = "3.1.0"
 
     /**
      * Sets the SudoLogging `Logger` for the shared instance
