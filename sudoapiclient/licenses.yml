@@ -458,3 +458,9 @@
   license: The Apache Software License, Version 2.0
   licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
   url: http://tools.android.com
+- artifact: com.amazonaws:aws-android-sdk-cognitoauth:+
+  name: AWS SDK for Android - Amazon Cognito Auth
+  copyrightHolder: Amazon
+  license: Amazon Software License
+  licenseUrl: https://aws.amazon.com/asl/
+  url: https://github.com/aws/aws-sdk-android  

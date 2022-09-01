@@ -2,8 +2,8 @@
 
 buildscript {
     ext.kotlin_version = '1.6.10'
-    ext.appsync_version = "3.3.0"
-    ext.aws_version = "2.42.0"
+    ext.appsync_version = "3.3.2"
+    ext.aws_version = "2.52.1"
 
     repositories {
         maven { url "https://plugins.gradle.org/m2/" }
@@ -17,7 +17,7 @@ buildscript {
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
 
-        classpath "org.owasp:dependency-check-gradle:6.5.3"
+        classpath "org.owasp:dependency-check-gradle:7.1.2"
         classpath "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:3.3"
         classpath "com.cookpad.android.licensetools:license-tools-plugin:1.7.0"
     }
