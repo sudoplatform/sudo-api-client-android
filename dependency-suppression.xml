@@ -9,17 +9,80 @@
     <packageUrl regex="true">^pkg:maven/junit/junit@.*$</packageUrl>
     <cve>CVE-2020-15250</cve>
 </suppress>
-<suppress until="2022-12-11">
+<suppress until="2023-06-30">
     <notes><![CDATA[
     file name: kotlin-analysis-intellij-1.6.10.jar (shaded: com.google.code.gson/gson:2.8.6)
     ]]></notes>
     <cve>CVE-2022-25647</cve>
 </suppress>
-<suppress until="2022-12-11">
+<suppress until="2023-06-30">
    <notes><![CDATA[
    file name: jsoup-1.13.1.jar
    ]]></notes>
    <packageUrl regex="true">^pkg:maven/org\.jsoup/jsoup@.*$</packageUrl>
    <cve>CVE-2022-36033</cve>
+</suppress>
+<suppress until="2023-06-30">
+   <notes><![CDATA[
+   file name: aws-android-sdk-appsync-api-3.3.2.jar
+   ]]></notes>
+   <packageUrl regex="true">^pkg:maven/com\.amazonaws/aws\-android\-sdk\-appsync\-api@.*$</packageUrl>
+   <cve>CVE-2015-10043</cve>
+</suppress>
+<suppress until="2023-06-30">
+   <notes><![CDATA[
+   file name: aws-android-sdk-appsync-runtime-3.3.2.jar
+   ]]></notes>
+   <packageUrl regex="true">^pkg:maven/com\.amazonaws/aws\-android\-sdk\-appsync\-runtime@.*$</packageUrl>
+   <cve>CVE-2015-10043</cve>
+</suppress>
+<suppress until="2023-06-30">
+   <notes><![CDATA[
+   file name: jackson-databind-2.12.7.jar
+   ]]></notes>
+   <packageUrl regex="true">^pkg:maven/com\.fasterxml\.jackson\.core/jackson\-databind@.*$</packageUrl>
+   <cve>CVE-2022-42003</cve>
+</suppress>
+<suppress until="2023-06-30">
+   <notes><![CDATA[
+   file name: kotlin-analysis-intellij-1.7.20.jar (shaded: com.google.code.gson:gson:2.8.8)
+   ]]></notes>
+   <packageUrl regex="true">^pkg:maven/com\.google\.code\.gson/gson@.*$</packageUrl>
+   <cve>CVE-2022-25647</cve>
+</suppress>
+<suppress until="2023-06-30">
+   <notes><![CDATA[
+   file name: kotlin-analysis-intellij-1.7.20.jar (shaded: com.google.protobuf:protobuf-java:2.6.1)
+   ]]></notes>
+   <packageUrl regex="true">^pkg:maven/com\.google\.protobuf/protobuf\-java@.*$</packageUrl>
+   <vulnerabilityName>CVE-2022-3509</vulnerabilityName>
+</suppress>
+<suppress until="2023-06-30">
+   <notes><![CDATA[
+   file name: kotlin-analysis-intellij-1.7.20.jar (shaded: commons-lang:commons-lang:2.4)
+   ]]></notes>
+   <packageUrl regex="true">^pkg:maven/commons\-lang/commons\-lang@.*$</packageUrl>
+   <cve>CVE-2021-37533</cve>
+</suppress>
+<suppress until="2023-06-30">
+   <notes><![CDATA[
+   file name: woodstox-core-6.2.4.jar
+   ]]></notes>
+   <packageUrl regex="true">^pkg:maven/com\.fasterxml\.woodstox/woodstox\-core@.*$</packageUrl>
+   <vulnerabilityName>CVE-2022-40152</vulnerabilityName>
+</suppress>
+<suppress until="2023-06-30">
+   <notes><![CDATA[
+   file name: jackson-databind-2.12.7.jar
+   ]]></notes>
+   <packageUrl regex="true">^pkg:maven/com\.fasterxml\.jackson\.core/jackson\-databind@.*$</packageUrl>
+   <cve>CVE-2022-42004</cve>
+</suppress>
+<suppress until="2023-06-30">
+   <notes><![CDATA[
+   file name: junit-4.12.jar
+   ]]></notes>
+   <packageUrl regex="true">^pkg:maven/junit/junit@.*$</packageUrl>
+   <cve>CVE-2020-15250</cve>
 </suppress>
 </suppressions>
