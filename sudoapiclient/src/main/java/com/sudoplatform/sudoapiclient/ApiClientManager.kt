@@ -10,6 +10,7 @@ import android.content.Context
 import com.amazonaws.mobile.config.AWSConfiguration
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.appmattus.certificatetransparency.certificateTransparencyInterceptor
+import com.appmattus.certificatetransparency.loglist.LogListDataSourceFactory
 import com.sudoplatform.sudoconfigmanager.DefaultSudoConfigManager
 import com.sudoplatform.sudologging.Logger
 import com.sudoplatform.sudouser.ConvertSslErrorsInterceptor
@@ -114,7 +115,9 @@ object ApiClientManager {
      * Construct the [OkHttpClient] configured with the certificate transparency checking interceptor.
      */
     private fun buildOkHttpClient(): OkHttpClient {
-        val interceptor = certificateTransparencyInterceptor {}
+        val interceptor = certificateTransparencyInterceptor {
+            setLogListService(LogListDataSourceFactory.createLogListService("https://www.gstatic.com/ct/log_list/v3/"))
+        }
         val okHttpClient = OkHttpClient.Builder().readTimeout(30L, TimeUnit.SECONDS).apply {
             // Convert exceptions from certificate transparency into http errors that stop the
             // exponential backoff retrying of [AWSAppSyncClient]
