@@ -73,7 +73,7 @@ dependencies {
 
     // Sudo Platform SDKs.
     implementation 'com.sudoplatform:sudoconfigmanager:4.0.0'
-    implementation 'com.sudoplatform:sudouser:13.0.1'
+    implementation 'com.sudoplatform:sudouser:13.1.0'
 }
 
 configurations.all {

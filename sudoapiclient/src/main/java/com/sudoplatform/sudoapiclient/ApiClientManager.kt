@@ -24,6 +24,17 @@ import java.util.concurrent.TimeUnit
  * Manages a singleton GraphQL client instance that may be shared by multiple service clients.
  */
 object ApiClientManager {
+
+    private const val CONFIG_NAMESPACE_IDENTITY_SERVICE = "identityService"
+    private const val CONFIG_NAMESPACE_API_SERVICE = "apiService"
+    private const val CONFIG_NAMESPACE_CT_LOG_LIST_SERVICE = "ctLogListService"
+
+    private const val CONFIG_REGION = "region"
+    private const val CONFIG_POOL_ID = "poolId"
+    private const val CONFIG_CLIENT_ID = "clientId"
+    private const val CONFIG_API_URL = "apiUrl"
+    private const val CONFIG_LOG_LIST_URL = "logListUrl"
+
     private var logger: Logger? = null
     private var client: AWSAppSyncClient? = null
 
@@ -33,7 +44,7 @@ object ApiClientManager {
      * for the source code.  We can change the value of this property which will generate a different checksum for publishing
      * and allow us to retry.  The value of `version` doesn't need to be kept up-to-date with the version of the code.
      */
-    private val version: String = "5.0.0"
+    private val version: String = "5.1.0"
 
     /**
      * Sets the SudoLogging `Logger` for the shared instance
@@ -54,15 +65,16 @@ object ApiClientManager {
         // return the existing AWSAppSyncClient if it has already been created
         this.client?.let { return it }
         val sudoConfigManager = DefaultSudoConfigManager(context, logger)
-        val apiConfig = sudoConfigManager.getConfigSet("apiService")
-        val identityServiceConfig = sudoConfigManager.getConfigSet("identityService")
+        val apiConfig = sudoConfigManager.getConfigSet(CONFIG_NAMESPACE_API_SERVICE)
+        val identityServiceConfig = sudoConfigManager.getConfigSet(CONFIG_NAMESPACE_IDENTITY_SERVICE)
+        val ctLogListServiceConfig = sudoConfigManager.getConfigSet(CONFIG_NAMESPACE_CT_LOG_LIST_SERVICE)
 
         require(identityServiceConfig != null && apiConfig != null) { "Identity or API service configuration is missing." }
 
-        val apiUrl = apiConfig.get("apiUrl") as String?
-        val region = apiConfig.get("region") as String?
-        val poolId = identityServiceConfig.get("poolId") as String?
-        val clientId = identityServiceConfig.get("clientId") as String?
+        val apiUrl = apiConfig.get(CONFIG_API_URL) as String?
+        val region = apiConfig.get(CONFIG_REGION) as String?
+        val poolId = identityServiceConfig.get(CONFIG_POOL_ID) as String?
+        val clientId = identityServiceConfig.get(CONFIG_CLIENT_ID) as String?
 
         require(poolId != null
                 && clientId != null
@@ -91,6 +103,7 @@ object ApiClientManager {
             )
 
             val authProvider = GraphQLAuthProvider(sudoUserClient)
+            val logListUrl = ctLogListServiceConfig?.getString(CONFIG_LOG_LIST_URL)
             val appSyncClient = AWSAppSyncClient.builder()
             	.context(context)
                 // Currently realtime subscription does not support passing a custom Cognito User Pool
@@ -101,7 +114,7 @@ object ApiClientManager {
                 .oidcAuthProvider { authProvider.latestAuthToken }
                 .subscriptionsAutoReconnect(true)
                 .awsConfiguration(AWSConfiguration(awsConfig))
-                .okHttpClient(buildOkHttpClient())
+                .okHttpClient(buildOkHttpClient(logListUrl))
                 .build()
 
             this.client = appSyncClient
@@ -114,9 +127,11 @@ object ApiClientManager {
     /**
      * Construct the [OkHttpClient] configured with the certificate transparency checking interceptor.
      */
-    private fun buildOkHttpClient(): OkHttpClient {
+    private fun buildOkHttpClient(ctLogListUrl: String?): OkHttpClient {
+        val url = ctLogListUrl ?: "https://www.gstatic.com/ct/log_list/v3/"
+        this.logger?.info("Using CT log list URL: $url")
         val interceptor = certificateTransparencyInterceptor {
-            setLogListService(LogListDataSourceFactory.createLogListService("https://www.gstatic.com/ct/log_list/v3/"))
+            setLogListService(LogListDataSourceFactory.createLogListService(url))
         }
         val okHttpClient = OkHttpClient.Builder().readTimeout(30L, TimeUnit.SECONDS).apply {
             // Convert exceptions from certificate transparency into http errors that stop the
