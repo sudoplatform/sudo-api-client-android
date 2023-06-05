@@ -16,6 +16,7 @@ import com.sudoplatform.sudologging.Logger
 import com.sudoplatform.sudouser.ConvertSslErrorsInterceptor
 import com.sudoplatform.sudouser.GraphQLAuthProvider
 import com.sudoplatform.sudouser.SudoUserClient
+import okhttp3.ConnectionPool
 import okhttp3.OkHttpClient
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
@@ -37,6 +38,10 @@ object ApiClientManager {
 
     private var logger: Logger? = null
     private var client: AWSAppSyncClient? = null
+    // This could be updated in the future to expose the number of connections
+    // and keep-alive duration, if deemed necessary. Previous implementations
+    // used the default settings deep inside the okHttpClient builder.
+    private val connectionPool: ConnectionPool = ConnectionPool()
 
     /**
      * Checksum's for each file are generated and are used to create a checksum that is used when publishing to maven central.
@@ -133,13 +138,16 @@ object ApiClientManager {
         val interceptor = certificateTransparencyInterceptor {
             setLogListService(LogListDataSourceFactory.createLogListService(url))
         }
-        val okHttpClient = OkHttpClient.Builder().readTimeout(30L, TimeUnit.SECONDS).apply {
-            // Convert exceptions from certificate transparency into http errors that stop the
-            // exponential backoff retrying of [AWSAppSyncClient]
-            addInterceptor(ConvertSslErrorsInterceptor())
+        val okHttpClient = OkHttpClient.Builder()
+            .readTimeout(30L, TimeUnit.SECONDS)
+            .connectionPool(connectionPool)
+            .apply {
+                // Convert exceptions from certificate transparency into http errors that stop the
+                // exponential backoff retrying of [AWSAppSyncClient]
+                addInterceptor(ConvertSslErrorsInterceptor())
 
-            // Certificate transparency checking
-            addNetworkInterceptor(interceptor)
+                // Certificate transparency checking
+                addNetworkInterceptor(interceptor)
         }
         return okHttpClient.build()
     }
@@ -149,5 +157,12 @@ object ApiClientManager {
      */
     fun reset() {
         this.client?.clearCaches()
+    }
+
+    /**
+     * Resets any idle connections in the connection pool associated with the client.
+     */
+    fun resetConnectionPool() {
+        this.connectionPool.evictAll()
     }
 }
