@@ -1,10 +1,11 @@
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
-apply plugin: 'kotlin-android-extensions'
 apply plugin: "org.sonarqube"
 apply plugin: "org.owasp.dependencycheck"
 
 android {
+    namespace 'com.sudoplatform.sudoapiclient'
+
     compileSdkVersion 31
 
     defaultConfig {
@@ -59,44 +60,17 @@ dependencies {
     // for updating AWS SDK versions.
     implementation "com.amazonaws:aws-android-sdk-core:$aws_version!!"
     implementation "com.amazonaws:aws-android-sdk-appsync:$appsync_version!!"
-    constraints {
-        implementation("com.squareup.okhttp3:okhttp:4.9.3") {
-            because("Versions < 4.9.3 has CVE-2021-0341")
-        }
-    }
 
-    implementation 'com.appmattus.certificatetransparency:certificatetransparency-android:1.1.1'
+    implementation "com.squareup.okhttp3:okhttp:4.11.0"
+    implementation 'com.appmattus.certificatetransparency:certificatetransparency-android:2.4.7'
 
     androidTestImplementation 'androidx.test:runner:1.5.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation "io.kotlintest:kotlintest-assertions:3.4.2"
 
     // Sudo Platform SDKs.
-    implementation 'com.sudoplatform:sudoconfigmanager:4.0.0'
-    implementation 'com.sudoplatform:sudouser:15.0.0'
-}
-
-configurations.all {
-    resolutionStrategy {
-        dependencySubstitution {
-            // Bouncy Castle is a transitive dependency of the certificate
-            // transparency library. This can be upgraded transparently
-            // to bcprov-jdk15on:1.65, but post 1.65 we need to move to bcprov-jdk15to18
-            // i.e. different module name, and so we get duplicate classes. Substitute
-            // here for the bcprov/bcpkix-jdk15to18 modules
-            substitute module("org.bouncycastle:bcprov-jdk15on") with module("org.bouncycastle:bcprov-jdk15to18:1.68")
-            substitute module("org.bouncycastle:bcpkix-jdk15on") with module("org.bouncycastle:bcpkix-jdk15to18:1.68")
-        }
-    }
-}
-
-task sourcesJar(type: Jar) {
-    archiveClassifier = 'sources'
-    from android.sourceSets.main.java.srcDirs
-}
-
-artifacts {
-    archives sourcesJar
+    implementation 'com.sudoplatform:sudoconfigmanager:5.0.0'
+    implementation 'com.sudoplatform:sudouser:16.0.0'
 }
 
 // Returns a list of `configurations` which should not be scanned for vulnerabilities
@@ -125,6 +99,12 @@ afterEvaluate {
         suppressionFile file("../dependency-suppression.xml").toString()
         failBuildOnCVSS 0
         skipConfigurations = getConfigurationsToSkip(configurations)
+        cve {
+            urlModified = "https://anonyome-nist-cve-mirror.s3.amazonaws.com/nvdcve-1.1-modified.json.gz"
+            urlBase = "https://anonyome-nist-cve-mirror.s3.amazonaws.com/nvdcve-1.1-%d.json.gz"
+            startYear = 2002
+            waitTime = 0
+        }
     }
 }
 
@@ -163,8 +143,6 @@ task checkLicenseHaveRequiredFields {
     }
 }
 checkLicenses.finalizedBy checkLicenseHaveRequiredFields
-
-apply plugin: 'maven'
 
 ext {
     projectArtifact = 'sudoapiclient'

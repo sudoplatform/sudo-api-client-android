@@ -124,12 +124,6 @@
   license: The Apache License, Version 2.0
   licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
   url: https://kotlinlang.org/
-- artifact: org.jetbrains.kotlin:kotlin-android-extensions-runtime:+
-  name: org.jetbrains.kotlin:kotlin-android-extensions-runtime
-  copyrightHolder: JetBrains s.r.o.
-  license: The Apache License, Version 2.0
-  licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
-  url: https://kotlinlang.org/
 - artifact: org.checkerframework:checker-compat-qual:+
   name: Checker Qual
   copyrightHolder: checkerframework
@@ -463,4 +457,16 @@
   copyrightHolder: Amazon
   license: Amazon Software License
   licenseUrl: https://aws.amazon.com/asl/
-  url: https://github.com/aws/aws-sdk-android  
+  url: https://github.com/aws/aws-sdk-android
+- artifact: com.squareup.okio:okio-jvm:+
+  name: okio
+  copyrightHolder: Square, Inc.
+  license: The Apache Software License, Version 2.0
+  licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
+  url: https://github.com/square/okio/
+- artifact: org.jetbrains.kotlin:kotlin-android-extensions-runtime:+
+  name: Kotlin Android Extensions Runtime
+  copyrightHolder: Jetbrains, Inc.
+  license: The Apache License, Version 2.0
+  licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
+  url: https://kotlinlang.org/
