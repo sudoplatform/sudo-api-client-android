@@ -9,6 +9,7 @@ package com.sudoplatform.sudoapiclient
 import android.content.Context
 import com.amazonaws.mobile.config.AWSConfiguration
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
+import com.appmattus.certificatetransparency.cache.AndroidDiskCache
 import com.appmattus.certificatetransparency.certificateTransparencyInterceptor
 import com.appmattus.certificatetransparency.loglist.LogListDataSourceFactory
 import com.sudoplatform.sudoconfigmanager.DefaultSudoConfigManager
@@ -19,6 +20,9 @@ import com.sudoplatform.sudouser.SudoUserClient
 import okhttp3.ConnectionPool
 import okhttp3.OkHttpClient
 import org.json.JSONObject
+import java.time.Instant
+import java.time.temporal.ChronoUnit
+import java.time.temporal.TemporalUnit
 import java.util.concurrent.TimeUnit
 
 /**
@@ -49,7 +53,7 @@ object ApiClientManager {
      * for the source code.  We can change the value of this property which will generate a different checksum for publishing
      * and allow us to retry.  The value of `version` doesn't need to be kept up-to-date with the version of the code.
      */
-    private val version: String = "7.0.0"
+    private val version: String = "8.0.0"
 
     /**
      * Sets the SudoLogging `Logger` for the shared instance
@@ -119,7 +123,7 @@ object ApiClientManager {
                 .oidcAuthProvider { authProvider.latestAuthToken }
                 .subscriptionsAutoReconnect(true)
                 .awsConfiguration(AWSConfiguration(awsConfig))
-                .okHttpClient(buildOkHttpClient(logListUrl))
+                .okHttpClient(buildOkHttpClient(context, logListUrl))
                 .build()
 
             this.client = appSyncClient
@@ -132,11 +136,24 @@ object ApiClientManager {
     /**
      * Construct the [OkHttpClient] configured with the certificate transparency checking interceptor.
      */
-    private fun buildOkHttpClient(ctLogListUrl: String?): OkHttpClient {
+    private fun buildOkHttpClient(context: Context, ctLogListUrl: String?): OkHttpClient {
         val url = ctLogListUrl ?: "https://www.gstatic.com/ct/log_list/v3/"
         this.logger?.info("Using CT log list URL: $url")
         val interceptor = certificateTransparencyInterceptor {
-            setLogListService(LogListDataSourceFactory.createLogListService(url))
+            setLogListDataSource(
+                LogListDataSourceFactory.createDataSource(
+                    logListService = LogListDataSourceFactory.createLogListService(url),
+                    diskCache = AndroidDiskCache(context),
+                    now = {
+                        // Currently there's an issue where the new version of CT library invalidates the
+                        // cached log list if the log list timestamp is more than 24 hours old. This assumes
+                        // Google's log list and our mirror is updated every 24 hours which is not guaranteed.
+                        // We will override the definition of now to be 2 weeks in the past to be in
+                        // sync with our update interval. This override only impacts the calculation of cache
+                        // expiry in the CT library.
+                        Instant.now().minus(14, ChronoUnit.DAYS)
+                    })
+            )
         }
         val okHttpClient = OkHttpClient.Builder()
             .readTimeout(30L, TimeUnit.SECONDS)
