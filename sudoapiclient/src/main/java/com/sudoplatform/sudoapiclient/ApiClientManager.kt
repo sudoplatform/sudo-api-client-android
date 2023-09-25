@@ -22,7 +22,6 @@ import okhttp3.OkHttpClient
 import org.json.JSONObject
 import java.time.Instant
 import java.time.temporal.ChronoUnit
-import java.time.temporal.TemporalUnit
 import java.util.concurrent.TimeUnit
 
 /**
@@ -40,8 +39,12 @@ object ApiClientManager {
     private const val CONFIG_API_URL = "apiUrl"
     private const val CONFIG_LOG_LIST_URL = "logListUrl"
 
+    private const val DEFAULT_CONFIG_NAMESPACE = CONFIG_NAMESPACE_API_SERVICE
+
     private var logger: Logger? = null
-    private var client: AWSAppSyncClient? = null
+
+    private var namespacedClients = mutableMapOf<String, AWSAppSyncClient>()
+
     // This could be updated in the future to expose the number of connections
     // and keep-alive duration, if deemed necessary. Previous implementations
     // used the default settings deep inside the okHttpClient builder.
@@ -71,17 +74,39 @@ object ApiClientManager {
      */
     @Throws
     fun getClient(context: Context, sudoUserClient: SudoUserClient): AWSAppSyncClient {
-        // return the existing AWSAppSyncClient if it has already been created
-        this.client?.let { return it }
+        return getClient(context, sudoUserClient, DEFAULT_CONFIG_NAMESPACE)
+    }
+
+    /**
+     * Returns the shared instance of an `AWSAppSyncClient`
+     * @param context The context used for fetching the platform config json
+     * @param sudoUserClient A SudoUserClient instance which provides the auth info for the client object
+     * @param configNamespace The section of the application config which should provide the appsync endpoint details.
+     * @return AWSAppSyncClient
+     */
+    @Throws
+    fun getClient(context: Context, sudoUserClient: SudoUserClient, configNamespace: String): AWSAppSyncClient {
+        var configNamespaceToUse = configNamespace
+
         val sudoConfigManager = DefaultSudoConfigManager(context, logger)
+        val requestedServiceConfig = sudoConfigManager.getConfigSet(configNamespaceToUse)
         val apiConfig = sudoConfigManager.getConfigSet(CONFIG_NAMESPACE_API_SERVICE)
+        var configSetToUse = requestedServiceConfig
+
+        if(this.serviceConfigMatchesDefault(requestedServiceConfig, apiConfig)) {
+            configNamespaceToUse = DEFAULT_CONFIG_NAMESPACE
+            configSetToUse = apiConfig
+        }
+        // return the existing AWSAppSyncClient for the namespace if it has already been created
+        this.namespacedClients[configNamespaceToUse] ?.let {return it}
+
         val identityServiceConfig = sudoConfigManager.getConfigSet(CONFIG_NAMESPACE_IDENTITY_SERVICE)
         val ctLogListServiceConfig = sudoConfigManager.getConfigSet(CONFIG_NAMESPACE_CT_LOG_LIST_SERVICE)
 
-        require(identityServiceConfig != null && apiConfig != null) { "Identity or API service configuration is missing." }
+        require(identityServiceConfig != null && configSetToUse != null) { "Identity, API or requested service configuration is missing." }
 
-        val apiUrl = apiConfig.get(CONFIG_API_URL) as String?
-        val region = apiConfig.get(CONFIG_REGION) as String?
+        val apiUrl = configSetToUse.get(CONFIG_API_URL) as String?
+        val region = configSetToUse.get(CONFIG_REGION) as String?
         val poolId = identityServiceConfig.get(CONFIG_POOL_ID) as String?
         val clientId = identityServiceConfig.get(CONFIG_CLIENT_ID) as String?
 
@@ -89,7 +114,6 @@ object ApiClientManager {
                 && clientId != null
                 && apiUrl != null
                 && region != null) { "poolId or clientId or apiUrl or region was null." }
-
         try {
 
             // The AWSAppSyncClient auth provider requires the config to be in the following format
@@ -123,20 +147,30 @@ object ApiClientManager {
                 .oidcAuthProvider { authProvider.latestAuthToken }
                 .subscriptionsAutoReconnect(true)
                 .awsConfiguration(AWSConfiguration(awsConfig))
-                .okHttpClient(buildOkHttpClient(context, logListUrl))
+                .okHttpClient(buildOkHttpClient(context, configNamespaceToUse, logListUrl))
                 .build()
 
-            this.client = appSyncClient
+            this.namespacedClients[configNamespaceToUse] = appSyncClient
             return appSyncClient
         } catch (e: Exception) {
             throw(e)
         }
     }
 
+    private fun serviceConfigMatchesDefault(requestedServiceConfig: JSONObject?, defaultConfig: JSONObject?): Boolean {
+        // return true if requestedServiceConfig is the same as the default config,
+        // or if values are not set for requestedServiceConfig
+        val regionMatches = requestedServiceConfig == null || !requestedServiceConfig.has(CONFIG_REGION) ||
+                requestedServiceConfig.get(CONFIG_REGION) == defaultConfig?.get(CONFIG_REGION)
+        val apiUrlMatches = requestedServiceConfig == null || !requestedServiceConfig.has(CONFIG_API_URL) ||
+                requestedServiceConfig.get(CONFIG_API_URL) == defaultConfig?.get(CONFIG_API_URL)
+        return apiUrlMatches && regionMatches
+    }
+
     /**
      * Construct the [OkHttpClient] configured with the certificate transparency checking interceptor.
      */
-    private fun buildOkHttpClient(context: Context, ctLogListUrl: String?): OkHttpClient {
+    private fun buildOkHttpClient(context: Context, configNamespace: String, ctLogListUrl: String?): OkHttpClient {
         val url = ctLogListUrl ?: "https://www.gstatic.com/ct/log_list/v3/"
         this.logger?.info("Using CT log list URL: $url")
         val interceptor = certificateTransparencyInterceptor {
@@ -173,11 +207,11 @@ object ApiClientManager {
      * Clears caches on the client
      */
     fun reset() {
-        this.client?.clearCaches()
+        this.namespacedClients.forEach { it.value.clearCaches() }
     }
 
     /**
-     * Resets any idle connections in the connection pool associated with the client.
+     * Resets any idle connections in the connection pool associated with the clients.
      */
     fun resetConnectionPool() {
         this.connectionPool.evictAll()
