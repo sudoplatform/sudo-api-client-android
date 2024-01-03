@@ -56,7 +56,7 @@ object ApiClientManager {
      * for the source code.  We can change the value of this property which will generate a different checksum for publishing
      * and allow us to retry.  The value of `version` doesn't need to be kept up-to-date with the version of the code.
      */
-    private val version: String = "8.0.0"
+    private val version: String = "9.0.0"
 
     /**
      * Sets the SudoLogging `Logger` for the shared instance
@@ -93,12 +93,12 @@ object ApiClientManager {
         val apiConfig = sudoConfigManager.getConfigSet(CONFIG_NAMESPACE_API_SERVICE)
         var configSetToUse = requestedServiceConfig
 
-        if(this.serviceConfigMatchesDefault(requestedServiceConfig, apiConfig)) {
+        if (this.serviceConfigMatchesDefault(requestedServiceConfig, apiConfig)) {
             configNamespaceToUse = DEFAULT_CONFIG_NAMESPACE
             configSetToUse = apiConfig
         }
         // return the existing AWSAppSyncClient for the namespace if it has already been created
-        this.namespacedClients[configNamespaceToUse] ?.let {return it}
+        this.namespacedClients[configNamespaceToUse] ?.let { return it }
 
         val identityServiceConfig = sudoConfigManager.getConfigSet(CONFIG_NAMESPACE_IDENTITY_SERVICE)
         val ctLogListServiceConfig = sudoConfigManager.getConfigSet(CONFIG_NAMESPACE_CT_LOG_LIST_SERVICE)
@@ -110,12 +110,13 @@ object ApiClientManager {
         val poolId = identityServiceConfig.get(CONFIG_POOL_ID) as String?
         val clientId = identityServiceConfig.get(CONFIG_CLIENT_ID) as String?
 
-        require(poolId != null
-                && clientId != null
-                && apiUrl != null
-                && region != null) { "poolId or clientId or apiUrl or region was null." }
+        require(
+            poolId != null &&
+                clientId != null &&
+                apiUrl != null &&
+                region != null,
+        ) { "poolId or clientId or apiUrl or region was null." }
         try {
-
             // The AWSAppSyncClient auth provider requires the config to be in the following format
             val awsConfig = JSONObject(
                 """
@@ -132,13 +133,13 @@ object ApiClientManager {
                             'ApiUrl': '$apiUrl', 'Region': '$region', 'AuthMode': 'OPENID_CONNECT'}
                     }
                 } 
-                """.trimIndent()
+                """.trimIndent(),
             )
 
             val authProvider = GraphQLAuthProvider(sudoUserClient)
             val logListUrl = ctLogListServiceConfig?.getString(CONFIG_LOG_LIST_URL)
             val appSyncClient = AWSAppSyncClient.builder()
-            	.context(context)
+                .context(context)
                 // Currently realtime subscription does not support passing a custom Cognito User Pool
                 // authentication provider. To workaround we are using OIDC authentication provider but
                 // we should change to using Cognito User Pool authentication provider when it is
@@ -161,9 +162,9 @@ object ApiClientManager {
         // return true if requestedServiceConfig is the same as the default config,
         // or if values are not set for requestedServiceConfig
         val regionMatches = requestedServiceConfig == null || !requestedServiceConfig.has(CONFIG_REGION) ||
-                requestedServiceConfig.get(CONFIG_REGION) == defaultConfig?.get(CONFIG_REGION)
+            requestedServiceConfig.get(CONFIG_REGION) == defaultConfig?.get(CONFIG_REGION)
         val apiUrlMatches = requestedServiceConfig == null || !requestedServiceConfig.has(CONFIG_API_URL) ||
-                requestedServiceConfig.get(CONFIG_API_URL) == defaultConfig?.get(CONFIG_API_URL)
+            requestedServiceConfig.get(CONFIG_API_URL) == defaultConfig?.get(CONFIG_API_URL)
         return apiUrlMatches && regionMatches
     }
 
@@ -186,7 +187,8 @@ object ApiClientManager {
                         // sync with our update interval. This override only impacts the calculation of cache
                         // expiry in the CT library.
                         Instant.now().minus(14, ChronoUnit.DAYS)
-                    })
+                    },
+                ),
             )
         }
         val okHttpClient = OkHttpClient.Builder()
@@ -199,7 +201,7 @@ object ApiClientManager {
 
                 // Certificate transparency checking
                 addNetworkInterceptor(interceptor)
-        }
+            }
         return okHttpClient.build()
     }
 

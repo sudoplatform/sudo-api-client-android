@@ -6,13 +6,13 @@ apply plugin: "org.owasp.dependencycheck"
 android {
     namespace 'com.sudoplatform.sudoapiclient'
 
-    compileSdkVersion 31
+    compileSdk 34
 
     defaultConfig {
         minSdkVersion 26
-        targetSdkVersion 31
+        targetSdkVersion 33
         versionCode 1
-        versionName "8.0.1"
+        versionName "9.0.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         testInstrumentationRunnerArguments clearPackageData: "true"
@@ -38,11 +38,11 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility 1.8
-        targetCompatibility 1.8
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
     kotlinOptions {
-        jvmTarget = "1.8"
+        jvmTarget = JavaVersion.VERSION_17.toString()
     }
 
     sourceSets {
@@ -68,8 +68,8 @@ dependencies {
     implementation "com.amazonaws:aws-android-sdk-core:$aws_version!!"
     implementation "com.amazonaws:aws-android-sdk-appsync:$appsync_version!!"
 
-    implementation "com.squareup.okhttp3:okhttp:4.11.0"
-    implementation 'com.appmattus.certificatetransparency:certificatetransparency-android:2.5.6'
+    implementation "com.squareup.okhttp3:okhttp:4.12.0"
+    implementation 'com.appmattus.certificatetransparency:certificatetransparency-android:2.5.19'
     constraints {
         implementation("com.squareup.okio:okio:3.4.0") {
             because "Versions earlier then 3.3.0 suffer from CVE-2023-3635 and 3.5.0+ may have compatibility issues"
@@ -81,8 +81,8 @@ dependencies {
     androidTestImplementation "io.kotlintest:kotlintest-assertions:3.4.2"
 
     // Sudo Platform SDKs.
-    implementation 'com.sudoplatform:sudoconfigmanager:6.0.0'
-    implementation 'com.sudoplatform:sudouser:17.0.1'
+    implementation 'com.sudoplatform:sudoconfigmanager:7.0.2'
+    implementation 'com.sudoplatform:sudouser:18.0.0'
 }
 
 // Returns a list of `configurations` which should not be scanned for vulnerabilities
@@ -155,6 +155,22 @@ task checkLicenseHaveRequiredFields {
     }
 }
 checkLicenses.finalizedBy checkLicenseHaveRequiredFields
+
+// Kotlin Lint
+apply plugin: 'org.jmailen.kotlinter'
+
+kotlinter {
+    ignoreFailures = false
+    reporters = ['checkstyle', 'plain']
+}
+
+// Sonarqube code analysis
+if (project.file("${rootProject.projectDir}/util/sonarqube.gradle").exists()) {
+    ext.sonarProjectKey = "sudo-api-client-android"
+    ext.sonarProjectName = "sudo-api-client-android"
+    ext.sonarExclusions = ["*.png", "*.jks", "*.json", "*.key"]
+    apply from: "${rootProject.projectDir}/util/sonarqube.gradle"
+}
 
 ext {
     projectArtifact = 'sudoapiclient'
