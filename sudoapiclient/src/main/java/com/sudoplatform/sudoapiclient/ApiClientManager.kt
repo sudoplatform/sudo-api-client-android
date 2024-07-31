@@ -1,5 +1,5 @@
 /*
- * Copyright © 2022 Anonyome Labs, Inc. All rights reserved.
+ * Copyright © 2024 Anonyome Labs, Inc. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -7,16 +7,20 @@
 package com.sudoplatform.sudoapiclient
 
 import android.content.Context
-import com.amazonaws.mobile.config.AWSConfiguration
-import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
+import com.amazonaws.regions.Regions
+import com.amplifyframework.api.ApiCategory
+import com.amplifyframework.api.ApiCategoryConfiguration
+import com.amplifyframework.api.aws.AWSApiPlugin
+import com.amplifyframework.api.aws.ApiAuthProviders
 import com.appmattus.certificatetransparency.cache.AndroidDiskCache
 import com.appmattus.certificatetransparency.certificateTransparencyInterceptor
 import com.appmattus.certificatetransparency.loglist.LogListDataSourceFactory
 import com.sudoplatform.sudoconfigmanager.DefaultSudoConfigManager
 import com.sudoplatform.sudologging.Logger
-import com.sudoplatform.sudouser.ConvertSslErrorsInterceptor
-import com.sudoplatform.sudouser.GraphQLAuthProvider
 import com.sudoplatform.sudouser.SudoUserClient
+import com.sudoplatform.sudouser.amplify.GraphQLAuthProvider
+import com.sudoplatform.sudouser.amplify.GraphQLClient
+import com.sudoplatform.sudouser.http.ConvertClientErrorsInterceptor
 import okhttp3.ConnectionPool
 import okhttp3.OkHttpClient
 import org.json.JSONObject
@@ -43,7 +47,7 @@ object ApiClientManager {
 
     private var logger: Logger? = null
 
-    private var namespacedClients = mutableMapOf<String, AWSAppSyncClient>()
+    private var namespacedClients = mutableMapOf<String, GraphQLClient>()
 
     // This could be updated in the future to expose the number of connections
     // and keep-alive duration, if deemed necessary. Previous implementations
@@ -51,12 +55,12 @@ object ApiClientManager {
     private val connectionPool: ConnectionPool = ConnectionPool()
 
     /**
-     * Checksum's for each file are generated and are used to create a checksum that is used when publishing to maven central.
+     * Checksums for each file are generated and are used to create a checksum that is used when publishing to maven central.
      * In order to retry a failed publish without needing to change any functionality, we need a way to generate a different checksum
      * for the source code.  We can change the value of this property which will generate a different checksum for publishing
      * and allow us to retry.  The value of `version` doesn't need to be kept up-to-date with the version of the code.
      */
-    private val version: String = "9.0.0"
+    private val version: String = "11.0.1"
 
     /**
      * Sets the SudoLogging `Logger` for the shared instance
@@ -67,25 +71,25 @@ object ApiClientManager {
     }
 
     /**
-     * Returns the shared instance of an `AWSAppSyncClient`
+     * Returns the shared instance of a GraphQLClient, the client object used to make AppSync calls to AWS.
      * @param context The context used for fetching the platform config json
      * @param sudoUserClient A SudoUserClient instance which provides the auth info for the client object
-     * @return AWSAppSyncClient
+     * @return GraphQLClient
      */
     @Throws
-    fun getClient(context: Context, sudoUserClient: SudoUserClient): AWSAppSyncClient {
+    fun getClient(context: Context, sudoUserClient: SudoUserClient): GraphQLClient {
         return getClient(context, sudoUserClient, DEFAULT_CONFIG_NAMESPACE)
     }
 
     /**
-     * Returns the shared instance of an `AWSAppSyncClient`
+     * Returns the shared instance of an GraphQLClient, the client object used to make AppSync calls to AWS.
      * @param context The context used for fetching the platform config json
      * @param sudoUserClient A SudoUserClient instance which provides the auth info for the client object
      * @param configNamespace The section of the application config which should provide the appsync endpoint details.
-     * @return AWSAppSyncClient
+     * @return GraphQLClient
      */
     @Throws
-    fun getClient(context: Context, sudoUserClient: SudoUserClient, configNamespace: String): AWSAppSyncClient {
+    fun getClient(context: Context, sudoUserClient: SudoUserClient, configNamespace: String): GraphQLClient {
         var configNamespaceToUse = configNamespace
 
         val sudoConfigManager = DefaultSudoConfigManager(context, logger)
@@ -117,42 +121,54 @@ object ApiClientManager {
                 region != null,
         ) { "poolId or clientId or apiUrl or region was null." }
         try {
-            // The AWSAppSyncClient auth provider requires the config to be in the following format
-            val awsConfig = JSONObject(
+            val graphqlConfig = JSONObject(
                 """
                 {
-                    'CognitoUserPool': {
-                        'Default': {
-                            'PoolId': '$poolId',
-                            'AppClientId': '$clientId',
-                            "Region": "$region"
+                    'plugins': {
+                        'awsAPIPlugin': {
+                            'Default': {
+                                'endpointType': 'GraphQL',
+                                'endpoint': '$apiUrl',
+                                'region': '${Regions.fromName(region)}',
+                                'authorizationType': 'AMAZON_COGNITO_USER_POOLS'
+                            }
+                        },
+                        'awsCognitoAuthPlugin': {
+                            'CognitoUserPool': {
+                                'Default': {
+                                    'PoolId': '$poolId',
+                                    'AppClientId': '$clientId',
+                                    "Region": "'${Regions.fromName(region)}'"
+                                }
+                            }
                         }
-                    },
-                    'AppSync': {
-                        'Default': {
-                            'ApiUrl': '$apiUrl', 'Region': '$region', 'AuthMode': 'OPENID_CONNECT'}
                     }
                 } 
                 """.trimIndent(),
             )
-
             val authProvider = GraphQLAuthProvider(sudoUserClient)
             val logListUrl = ctLogListServiceConfig?.getString(CONFIG_LOG_LIST_URL)
-            val appSyncClient = AWSAppSyncClient.builder()
-                .context(context)
-                // Currently realtime subscription does not support passing a custom Cognito User Pool
-                // authentication provider. To workaround we are using OIDC authentication provider but
-                // we should change to using Cognito User Pool authentication provider when it is
-                // supported.
-                // .cognitoUserPoolsAuthProvider(authProvider)
-                .oidcAuthProvider { authProvider.latestAuthToken }
-                .subscriptionsAutoReconnect(true)
-                .awsConfiguration(AWSConfiguration(awsConfig))
-                .okHttpClient(buildOkHttpClient(context, configNamespaceToUse, logListUrl))
+
+            val apiCategoryConfiguration = ApiCategoryConfiguration()
+            apiCategoryConfiguration.populateFromJSON(graphqlConfig)
+            val apiCategory = ApiCategory()
+            val authProviders = ApiAuthProviders.builder().cognitoUserPoolsAuthProvider(authProvider).build()
+            val awsApiPlugin = AWSApiPlugin
+                .builder()
+                .apiAuthProviders(authProviders)
+                .configureClient(
+                    CONFIG_NAMESPACE_IDENTITY_SERVICE,
+                ) { builder -> this.buildOkHttpClient(builder, context, logListUrl) }
                 .build()
 
-            this.namespacedClients[configNamespaceToUse] = appSyncClient
-            return appSyncClient
+            apiCategory.addPlugin(awsApiPlugin)
+            apiCategory.configure(apiCategoryConfiguration, context)
+            apiCategory.initialize(context)
+
+            val client = GraphQLClient(apiCategory)
+
+            this.namespacedClients[configNamespaceToUse] = client
+            return client
         } catch (e: Exception) {
             throw(e)
         }
@@ -171,7 +187,11 @@ object ApiClientManager {
     /**
      * Construct the [OkHttpClient] configured with the certificate transparency checking interceptor.
      */
-    private fun buildOkHttpClient(context: Context, configNamespace: String, ctLogListUrl: String?): OkHttpClient {
+    private fun buildOkHttpClient(
+        builder: OkHttpClient.Builder,
+        context: Context,
+        ctLogListUrl: String?,
+    ): OkHttpClient.Builder {
         val url = ctLogListUrl ?: "https://www.gstatic.com/ct/log_list/v3/"
         this.logger?.info("Using CT log list URL: $url")
         val interceptor = certificateTransparencyInterceptor {
@@ -191,25 +211,24 @@ object ApiClientManager {
                 ),
             )
         }
-        val okHttpClient = OkHttpClient.Builder()
+        val okHttpClient = builder
             .readTimeout(30L, TimeUnit.SECONDS)
             .connectionPool(connectionPool)
             .apply {
-                // Convert exceptions from certificate transparency into http errors that stop the
-                // exponential backoff retrying of [AWSAppSyncClient]
-                addInterceptor(ConvertSslErrorsInterceptor())
+                // Convert exceptions which are swallowed by the GraphQLOperation error manager
+                // into ones we can detect
+                addInterceptor(ConvertClientErrorsInterceptor())
 
                 // Certificate transparency checking
                 addNetworkInterceptor(interceptor)
             }
-        return okHttpClient.build()
+        return okHttpClient
     }
 
     /**
-     * Clears caches on the client
+     * No-op - placeholder
      */
     fun reset() {
-        this.namespacedClients.forEach { it.value.clearCaches() }
     }
 
     /**

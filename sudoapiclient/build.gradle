@@ -11,7 +11,7 @@ android {
     defaultConfig {
         minSdkVersion 26
         targetSdkVersion 34
-        versionName "10.0.0"
+        versionName "11.0.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         testInstrumentationRunnerArguments clearPackageData: "true"
     }
@@ -64,7 +64,12 @@ dependencies {
     // Follow the process at https://anonyome.atlassian.net/wiki/spaces/PLA/pages/840073287/AWS+Android+SDK+versions+to+use+for+platform+SDKs
     // for updating AWS SDK versions.
     implementation "com.amazonaws:aws-android-sdk-core:$aws_version!!"
-    implementation "com.amazonaws:aws-android-sdk-appsync:$appsync_version!!"
+
+    // Amplify
+    implementation "com.amplifyframework:core-kotlin:$amplify_version"
+    implementation "com.amplifyframework:aws-api-appsync:$amplify_version"
+    implementation "com.amplifyframework:aws-api:$amplify_version"
+    implementation "com.amplifyframework:aws-auth-cognito:$amplify_version"
 
     implementation "com.squareup.okhttp3:okhttp:4.12.0"
     implementation 'com.appmattus.certificatetransparency:certificatetransparency-android:2.5.42'
@@ -81,7 +86,7 @@ dependencies {
     // Sudo Platform SDKs.
     implementation 'com.sudoplatform:sudologging:5.0.0'
     implementation 'com.sudoplatform:sudoconfigmanager:8.0.0'
-    implementation 'com.sudoplatform:sudouser:19.0.0'
+    implementation 'com.sudoplatform:sudouser:20.0.0'
 }
 
 // Returns a list of `configurations` which should not be scanned for vulnerabilities
@@ -119,8 +124,8 @@ afterEvaluate {
     }
 }
 
-// https://github.com/cookpad/license-tools-plugin
-apply plugin: "com.cookpad.android.licensetools"
+// https://github.com/cookpad/LicenseToolsPlugin
+apply plugin: "com.cookpad.android.plugin.license-tools"
 licenseTools {
     licensesYaml = file("licenses.yml")
     ignoredGroups = ["com.nhaarman:mockito-kotlin", "com.anonyome", "com.sudoplatform"]
