@@ -101,8 +101,9 @@ object ApiClientManager {
             configNamespaceToUse = DEFAULT_CONFIG_NAMESPACE
             configSetToUse = apiConfig
         }
-        // return the existing AWSAppSyncClient for the namespace if it has already been created
-        this.namespacedClients[configNamespaceToUse] ?.let { return it }
+        val userClientHash = sudoUserClient.toString()
+        // return the existing GraphQLClient for the namespace/userClient combo if it has already been created
+        this.namespacedClients["$configNamespaceToUse:$userClientHash"] ?.let { return it }
 
         val identityServiceConfig = sudoConfigManager.getConfigSet(CONFIG_NAMESPACE_IDENTITY_SERVICE)
         val ctLogListServiceConfig = sudoConfigManager.getConfigSet(CONFIG_NAMESPACE_CT_LOG_LIST_SERVICE)
@@ -167,7 +168,7 @@ object ApiClientManager {
 
             val client = GraphQLClient(apiCategory)
 
-            this.namespacedClients[configNamespaceToUse] = client
+            this.namespacedClients["$configNamespaceToUse:$userClientHash"] = client
             return client
         } catch (e: Exception) {
             throw(e)

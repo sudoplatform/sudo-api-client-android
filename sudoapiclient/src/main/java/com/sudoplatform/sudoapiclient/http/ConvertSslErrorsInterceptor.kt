@@ -15,7 +15,7 @@ import java.net.HttpURLConnection
 /**
  * Convert any SSL errors emitted by the certificate transparency verification interceptor
  * into an HTTP response that is interpreted as fatal and should not be retried by the
- * AWSAppSyncClient.
+ * AppSync client.
  *
  */
 class ConvertSslErrorsInterceptor : Interceptor {
