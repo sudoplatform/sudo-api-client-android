@@ -11,7 +11,7 @@ android {
     defaultConfig {
         minSdkVersion 26
         targetSdkVersion 34
-        versionName "11.0.1"
+        versionName "11.1.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         testInstrumentationRunnerArguments clearPackageData: "true"
     }
@@ -79,7 +79,7 @@ dependencies {
         }
     }
 
-    androidTestImplementation 'androidx.test:runner:1.6.1'
+    androidTestImplementation 'androidx.test:runner:1.6.2'
     androidTestImplementation 'androidx.test.ext:junit:1.2.1'
     androidTestImplementation "io.kotlintest:kotlintest-assertions:3.4.2"
 
