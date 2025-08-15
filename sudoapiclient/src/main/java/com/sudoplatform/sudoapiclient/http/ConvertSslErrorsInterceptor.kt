@@ -19,14 +19,15 @@ import java.net.HttpURLConnection
  *
  */
 class ConvertSslErrorsInterceptor : Interceptor {
+    private val errorResponseBuilder =
+        okhttp3.Response
+            .Builder()
+            .code(HttpURLConnection.HTTP_FORBIDDEN)
+            .protocol(Protocol.HTTP_1_1)
+            .body("{}".toResponseBody("application/json".toMediaTypeOrNull()))
 
-    private val errorResponseBuilder = okhttp3.Response.Builder()
-        .code(HttpURLConnection.HTTP_FORBIDDEN)
-        .protocol(Protocol.HTTP_1_1)
-        .body("{}".toResponseBody("application/json".toMediaTypeOrNull()))
-
-    override fun intercept(chain: Interceptor.Chain): okhttp3.Response {
-        return try {
+    override fun intercept(chain: Interceptor.Chain): okhttp3.Response =
+        try {
             chain.proceed(chain.request())
         } catch (e: javax.net.ssl.SSLException) {
             errorResponseBuilder
@@ -34,5 +35,4 @@ class ConvertSslErrorsInterceptor : Interceptor {
                 .message("$e")
                 .build()
         }
-    }
 }

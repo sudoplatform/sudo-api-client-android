@@ -32,7 +32,6 @@ import java.util.concurrent.TimeUnit
  * Manages a singleton GraphQL client instance that may be shared by multiple service clients.
  */
 object ApiClientManager {
-
     private const val CONFIG_NAMESPACE_IDENTITY_SERVICE = "identityService"
     private const val CONFIG_NAMESPACE_API_SERVICE = "apiService"
     private const val CONFIG_NAMESPACE_CT_LOG_LIST_SERVICE = "ctLogListService"
@@ -60,7 +59,7 @@ object ApiClientManager {
      * for the source code.  We can change the value of this property which will generate a different checksum for publishing
      * and allow us to retry.  The value of `version` doesn't need to be kept up-to-date with the version of the code.
      */
-    private val version: String = "11.1.1"
+    private val version: String = "12.0.0"
 
     /**
      * Sets the SudoLogging `Logger` for the shared instance
@@ -77,9 +76,10 @@ object ApiClientManager {
      * @return GraphQLClient
      */
     @Throws
-    fun getClient(context: Context, sudoUserClient: SudoUserClient): GraphQLClient {
-        return getClient(context, sudoUserClient, DEFAULT_CONFIG_NAMESPACE)
-    }
+    fun getClient(
+        context: Context,
+        sudoUserClient: SudoUserClient,
+    ): GraphQLClient = getClient(context, sudoUserClient, DEFAULT_CONFIG_NAMESPACE)
 
     /**
      * Returns the shared instance of an GraphQLClient, the client object used to make AppSync calls to AWS.
@@ -89,7 +89,11 @@ object ApiClientManager {
      * @return GraphQLClient
      */
     @Throws
-    fun getClient(context: Context, sudoUserClient: SudoUserClient, configNamespace: String): GraphQLClient {
+    fun getClient(
+        context: Context,
+        sudoUserClient: SudoUserClient,
+        configNamespace: String,
+    ): GraphQLClient {
         var configNamespaceToUse = configNamespace
 
         val sudoConfigManager = DefaultSudoConfigManager(context, logger)
@@ -122,31 +126,32 @@ object ApiClientManager {
                 region != null,
         ) { "poolId or clientId or apiUrl or region was null." }
         try {
-            val graphqlConfig = JSONObject(
-                """
-                {
-                    'plugins': {
-                        'awsAPIPlugin': {
-                            'Default': {
-                                'endpointType': 'GraphQL',
-                                'endpoint': '$apiUrl',
-                                'region': '${Regions.fromName(region)}',
-                                'authorizationType': 'AMAZON_COGNITO_USER_POOLS'
-                            }
-                        },
-                        'awsCognitoAuthPlugin': {
-                            'CognitoUserPool': {
+            val graphqlConfig =
+                JSONObject(
+                    """
+                    {
+                        'plugins': {
+                            'awsAPIPlugin': {
                                 'Default': {
-                                    'PoolId': '$poolId',
-                                    'AppClientId': '$clientId',
-                                    "Region": "'${Regions.fromName(region)}'"
+                                    'endpointType': 'GraphQL',
+                                    'endpoint': '$apiUrl',
+                                    'region': '${Regions.fromName(region)}',
+                                    'authorizationType': 'AMAZON_COGNITO_USER_POOLS'
+                                }
+                            },
+                            'awsCognitoAuthPlugin': {
+                                'CognitoUserPool': {
+                                    'Default': {
+                                        'PoolId': '$poolId',
+                                        'AppClientId': '$clientId',
+                                        "Region": "'${Regions.fromName(region)}'"
+                                    }
                                 }
                             }
                         }
-                    }
-                } 
-                """.trimIndent(),
-            )
+                    } 
+                    """.trimIndent(),
+                )
             val authProvider = GraphQLAuthProvider(sudoUserClient)
             val logListUrl = ctLogListServiceConfig?.getString(CONFIG_LOG_LIST_URL)
 
@@ -154,13 +159,14 @@ object ApiClientManager {
             apiCategoryConfiguration.populateFromJSON(graphqlConfig)
             val apiCategory = ApiCategory()
             val authProviders = ApiAuthProviders.builder().cognitoUserPoolsAuthProvider(authProvider).build()
-            val awsApiPlugin = AWSApiPlugin
-                .builder()
-                .apiAuthProviders(authProviders)
-                .configureClient(
-                    "Default",
-                ) { builder -> this.buildOkHttpClient(builder, context, logListUrl) }
-                .build()
+            val awsApiPlugin =
+                AWSApiPlugin
+                    .builder()
+                    .apiAuthProviders(authProviders)
+                    .configureClient(
+                        "Default",
+                    ) { builder -> this.buildOkHttpClient(builder, context, logListUrl) }
+                    .build()
 
             apiCategory.addPlugin(awsApiPlugin)
             apiCategory.configure(apiCategoryConfiguration, context)
@@ -175,13 +181,18 @@ object ApiClientManager {
         }
     }
 
-    private fun serviceConfigMatchesDefault(requestedServiceConfig: JSONObject?, defaultConfig: JSONObject?): Boolean {
+    private fun serviceConfigMatchesDefault(
+        requestedServiceConfig: JSONObject?,
+        defaultConfig: JSONObject?,
+    ): Boolean {
         // return true if requestedServiceConfig is the same as the default config,
         // or if values are not set for requestedServiceConfig
-        val regionMatches = requestedServiceConfig == null || !requestedServiceConfig.has(CONFIG_REGION) ||
-            requestedServiceConfig.get(CONFIG_REGION) == defaultConfig?.get(CONFIG_REGION)
-        val apiUrlMatches = requestedServiceConfig == null || !requestedServiceConfig.has(CONFIG_API_URL) ||
-            requestedServiceConfig.get(CONFIG_API_URL) == defaultConfig?.get(CONFIG_API_URL)
+        val regionMatches =
+            requestedServiceConfig == null || !requestedServiceConfig.has(CONFIG_REGION) ||
+                requestedServiceConfig.get(CONFIG_REGION) == defaultConfig?.get(CONFIG_REGION)
+        val apiUrlMatches =
+            requestedServiceConfig == null || !requestedServiceConfig.has(CONFIG_API_URL) ||
+                requestedServiceConfig.get(CONFIG_API_URL) == defaultConfig?.get(CONFIG_API_URL)
         return apiUrlMatches && regionMatches
     }
 
@@ -195,34 +206,36 @@ object ApiClientManager {
     ): OkHttpClient.Builder {
         val url = ctLogListUrl ?: "https://www.gstatic.com/ct/log_list/v3/"
         this.logger?.info("Using CT log list URL: $url")
-        val interceptor = certificateTransparencyInterceptor {
-            setLogListDataSource(
-                LogListDataSourceFactory.createDataSource(
-                    logListService = LogListDataSourceFactory.createLogListService(url),
-                    diskCache = AndroidDiskCache(context),
-                    now = {
-                        // Currently there's an issue where the new version of CT library invalidates the
-                        // cached log list if the log list timestamp is more than 24 hours old. This assumes
-                        // Google's log list and our mirror is updated every 24 hours which is not guaranteed.
-                        // We will override the definition of now to be 2 weeks in the past to be in
-                        // sync with our update interval. This override only impacts the calculation of cache
-                        // expiry in the CT library.
-                        Instant.now().minus(14, ChronoUnit.DAYS)
-                    },
-                ),
-            )
-        }
-        val okHttpClient = builder
-            .readTimeout(30L, TimeUnit.SECONDS)
-            .connectionPool(connectionPool)
-            .apply {
-                // Convert exceptions which are swallowed by the GraphQLOperation error manager
-                // into ones we can detect
-                addInterceptor(ConvertClientErrorsInterceptor())
-
-                // Certificate transparency checking
-                addNetworkInterceptor(interceptor)
+        val interceptor =
+            certificateTransparencyInterceptor {
+                setLogListDataSource(
+                    LogListDataSourceFactory.createDataSource(
+                        logListService = LogListDataSourceFactory.createLogListService(url),
+                        diskCache = AndroidDiskCache(context),
+                        now = {
+                            // Currently there's an issue where the new version of CT library invalidates the
+                            // cached log list if the log list timestamp is more than 24 hours old. This assumes
+                            // Google's log list and our mirror is updated every 24 hours which is not guaranteed.
+                            // We will override the definition of now to be 2 weeks in the past to be in
+                            // sync with our update interval. This override only impacts the calculation of cache
+                            // expiry in the CT library.
+                            Instant.now().minus(14, ChronoUnit.DAYS)
+                        },
+                    ),
+                )
             }
+        val okHttpClient =
+            builder
+                .readTimeout(30L, TimeUnit.SECONDS)
+                .connectionPool(connectionPool)
+                .apply {
+                    // Convert exceptions which are swallowed by the GraphQLOperation error manager
+                    // into ones we can detect
+                    addInterceptor(ConvertClientErrorsInterceptor())
+
+                    // Certificate transparency checking
+                    addNetworkInterceptor(interceptor)
+                }
         return okHttpClient
     }
 
